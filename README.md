@@ -1,6 +1,6 @@
 # Rosas Rush
 
-A 2D endless runner game inspired by Geometry Dash, built using **Python and Pygame**. Jump over obstacles, explore a magical neon forest, collect roses and gems, and try to beat your highest score!
+A 2D endless runner game inspired by Geometry Dash, built using Python and Pygame. Jump over obstacles, explore a magical neon forest, collect roses and gems, and try to beat your highest score!
 
 ##  About the Game
 
@@ -10,15 +10,15 @@ The game focuses on timing your jumps, avoiding obstacles, and collecting items 
 
 ## Features
 
-- Player Movement** – Jump using SPACE to avoid obstacles.
-- Elevated Platforms** – Jump onto platforms along the level.
-- Ground Gaps** – Avoid falling into gaps while running.
-- Obstacles** – Dodge spikes and blocks.
-- Rose Collectibles** – Collect roses to earn extra points.
-- Gem Collectibles** – Collect gems for additional points.
-- High Score System** – Keeps track of your best score even after restarting the game.
-- Increasing Difficulty** – The game gradually gets faster as your score increases.
-- Animated Environment** – Features stars, mountains, trees, clouds, fireflies, floating particles, and mushrooms.
+- Player Movement – Jump using SPACE to avoid obstacles.
+- Elevated Platforms – Jump onto platforms along the level.
+- Ground Gaps – Avoid falling into gaps while running.
+- Obstacles – Dodge spikes and blocks.
+- Rose Collectibles – Collect roses to earn extra points.
+- Gem Collectibles – Collect gems for additional points.
+- High Score System – Keeps track of your best score even after restarting the game.
+- Increasing Difficulty – The game gradually gets faster as your score increases.
+- Animated Environment – Features stars, mountains, trees, clouds, fireflies, floating particles, and mushrooms.
 
 
 ## Built With
@@ -29,24 +29,11 @@ The game focuses on timing your jumps, avoiding obstacles, and collecting items 
 ## How to Run
 
 1. Make sure Python is installed on your computer.
-2. Install Pygame:
-
-   ```bash
-   pip install pygame
-   ```
-
-3. Clone this repository:
-
-   ```bash
-   git clone YOUR-REPOSITORY-LINK
-   ```
-
+2. Install Pygame
+3. Clone this repository
 4. Open the project folder.
-5. Run the game:
-
-   ```bash
-   python main.py
-   ```
+5. Run the game
+  
 
 ## Current Development
 
