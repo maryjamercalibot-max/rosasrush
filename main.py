@@ -15,6 +15,17 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Rosas Rush")
 clock = pygame.time.Clock()
 
+#==========================================
+# GAME STATES
+#===========================================
+
+MENU = "menu"
+PLAYING = "playing"
+HOW_TO_PLAY = "how_to_play"
+
+game_state = MENU
+
+
 # ==========================================
 # COLORS
 # ==========================================
@@ -1119,10 +1130,27 @@ while running:
 
         if event.type == pygame.KEYDOWN:
 
-            if event.key == pygame.K_a and not game_over:
+            if game_state == MENU:
+
+                if event.key == pygame.K_RETURN:
+                    game_state = PLAYING
+
+                elif event.key == pygame.K_h:
+                    game_state = HOW_TO_PLAY
+
+                elif event.key == pygame.K_ESCAPE:
+                    running = False
+
+            elif game_state == HOW_TO_PLAY:
+
+                if event.key == pygame.K_ESCAPE:
+                    game_state = MENU
+
+
+            if event.key == pygame.K_a and not game_over and game_state == PLAYING:
                 show_achievements = not show_achievements
 
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE and game_state == PLAYING:
 
                 if game_over:
                     reset_game()
@@ -1159,7 +1187,7 @@ while running:
     # UPDATE GAME
     # ======================================
 
-    if not game_over and not show_achievements:
+    if game_state == PLAYING and not game_over and not show_achievements:
 
         ground_texture_offset += game_speed
 
@@ -2437,6 +2465,38 @@ while running:
                 CYAN
             )
 
+            # achievement progress bar
+            progress_amounts = {
+                "first_bloom": min(gem_count / 1, 1),
+                "gem_collector": min(gem_count / 10, 1),
+                "combo_starter": min(combo / 5, 1),
+                "high_scorer": min(score / 1000, 1)
+            }
+
+            bar_x = 430
+            bar_y = y_position + 48
+            bar_width = 180
+            bar_height = 8
+
+            pygame.draw.rect(
+                screen,
+                (65, 55, 90),
+                (bar_x, bar_y, bar_width, bar_height),
+                border_radius=5
+            )
+
+            pygame.draw.rect(
+                screen,
+                CYAN,
+                (
+                    bar_x,
+                    bar_y,
+                    int(bar_width * progress_amounts[achievement_id]),
+                    bar_height
+                ),
+                border_radius=5
+            )
+
             status_text = small_font.render(
                 status,
                 True,
@@ -2609,6 +2669,164 @@ while running:
                 int(particle["y"] - size * 3)
             )
         )
+
+    #=========================================
+    # MAIN MENU
+    #========================================
+
+    if game_state == MENU:
+
+        menu_overlay = pygame.Surface(
+            (WIDTH, HEIGHT),
+            pygame.SRCALPHA
+        )
+        menu_overlay.fill((10, 5, 30, 225))
+        screen.blit(menu_overlay, (0, 0))
+
+        #Game title
+        menu_title = title_font.render(
+            "ROSAS RUSH",
+            True,
+            PINK
+        )
+
+        screen.blit(
+            menu_title,
+            menu_title.get_rect(
+                center=(WIDTH // 2, 145)
+            )
+        )
+
+        #subtitle
+        subtitle = small_font.render(
+            "A NEON FOREST ADVENTURE",
+            True,
+            CYAN
+        )
+
+        screen.blit(
+            subtitle,
+            subtitle.get_rect(
+                center=(WIDTH // 2, 195)
+            )
+        )
+
+        #menu options
+        play_text = achievement_font.render(
+            "PRESS ENTER TO PLAY",
+            True,
+            WHITE
+        )
+
+        help_text = small_font.render(
+            "H - HOW TO PLAY",
+            True,
+            CYAN
+        )
+
+        quit_text = small_font.render(
+            "ESC - QUIT GAME",
+            True,
+            PINK
+        )
+
+        screen.blit(
+            play_text,
+            play_text.get_rect(
+                center=(WIDTH // 2, 290)
+            )
+        )
+
+        screen.blit(
+            help_text,
+            help_text.get_rect(
+                center=(WIDTH // 2, 340)
+            )
+        )
+
+        screen.blit(
+            quit_text,
+            quit_text.get_rect(
+                center=(WIDTH // 2,  375)
+            )
+        )
+
+        #========================================
+        # HOW TO PLAY SCREEN
+        #==========================================
+
+    elif game_state == HOW_TO_PLAY:
+        menu_overlay = pygame.Surface(
+            (WIDTH, HEIGHT),
+            pygame.SRCALPHA
+        )
+
+        menu_overlay.fill((10, 5, 30, 235))
+        screen.blit(menu_overlay, (0, 0))
+
+        heading = title_font.render(
+            "HOW TO PLAY",
+            True,
+            PINK
+        )
+
+        screen.blit(
+            heading,
+            heading.get_rect(
+                center=(WIDTH // 2, 105)
+            )
+        )
+
+        instructions = [
+            ("SPACE", "Jump"),
+            ("SPACE", "Activate jump orbs"),
+            ("COLLECT", "Gather gems and roses"),
+            ("AVOID", "Spikes, saws, and gaps"),
+            ("A", "View achievements")
+             
+        ]
+
+        y_position = 180
+
+        for control, description in instructions:
+
+            control_text = achievement_font.render(
+                control,
+                True,
+                CYAN
+            )
+
+            description_text = small_font.render(
+                description,
+                True,
+                WHITE
+            )
+
+            screen.blit(
+                control_text,
+                (230, y_position)
+            )
+
+            screen.blit(
+                description_text,
+                (410, y_position + 3)
+            )
+
+            y_position += 42
+
+        back_text = small_font.render(
+            "PRESS ESC TO RETURN",
+            True,
+            PINK
+        )
+
+        screen.blit(
+            back_text,
+            back_text.get_rect(
+                center=(WIDTH // 2, 440)
+            )
+        )
+
     pygame.display.flip()
 
 pygame.quit()
