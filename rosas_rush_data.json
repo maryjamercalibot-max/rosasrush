@@ -1,0 +1,21 @@
+{
+    "player_name": "MJ",
+    "high_score": 1029,
+    "total_gems": 2,
+    "total_roses": 5,
+    "total_orb_activations": 3,
+    "runs_completed": 1,
+    "best_combo": 2,
+    "best_survival_time": 14,
+    "achievements": {
+        "first_bloom": true,
+        "gem_collector": false,
+        "combo_starter": false,
+        "high_scorer": true,
+        "gem_hoarder": false,
+        "rose_keeper": false,
+        "combo_master": false,
+        "first_flight": false,
+        "dedicated_player": false
+    }
+}
