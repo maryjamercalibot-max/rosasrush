@@ -32,10 +32,18 @@ Rosas Rush is a 2D endless runner game I made using Python and Pygame. It is ins
 
 You can download and play Rosas Rush here:
 
+For Week 3:
 [Rosas Rush v1.1.0 - Download Demo](https://github.com/maryjamercalibot-max/rosasrush/releases/tag/v1.1.0)
 
 1. Open the release link above.
 2. Download RosasRush.exe from release assets.
+3. Open the downloaded file to play.
+
+For Week 4:
+[Rosas Rush v.1.2.0 - Download Demo](https://github.com/maryjamercalibot-max/rosasrush/releases/tag/v1.2.0)
+
+1. Open the release link above.
+2. Download RosasRush-v1.2.0.exe from release assets.
 3. Open the downloaded file to play.
 
 You dont need to install python or pygame separately.
