@@ -23,6 +23,8 @@ WELCOME = "welcome"
 CONFIRM_RESET = "confirm_reset"
 game_state = MENU
 
+pause_menu_active = False
+
 # COLORS
 
 BACKGROUND = (18, 10, 45)
@@ -62,6 +64,12 @@ back_button = pygame.Rect(340, 420, 220, 50)
 reset_data_button = pygame.Rect(650, 420, 160, 40)
 confirm_reset_button = pygame.Rect(250, 270, 180, 50)
 cancel_reset_button = pygame.Rect(470, 270, 180, 50)
+
+resume_button = pygame.Rect(340, 185, 220, 48)
+restart_button = pygame.Rect(340, 250, 220, 48)
+pause_menu_button = pygame.Rect(340, 315, 220, 48)
+pause_quit_button = pygame.Rect(340, 380, 220, 48)
+pause_button = pygame.Rect(815, 20, 60, 50)
 
 #wc screen buttons
 welcome_input_box = pygame.Rect(250, 245, 400, 55)
@@ -132,9 +140,6 @@ tutorial_messages = [
     "Complete challenges and unlock achievements!",
     "Check your statistics and personal records here."
 ]
-
-
-
 
 def draw_button(rect, text, mouse_pos):
 
@@ -218,6 +223,64 @@ def draw_button(rect, text, mouse_pos):
     screen.blit(
         button_text,
         button_text.get_rect(center=animated_rect.center)
+    )
+
+def draw_pause_button(rect, mouse_pos):
+    hovered = rect.collidepoint(mouse_pos)
+
+    button_color = (100, 45, 155) if hovered else (35, 20, 70)
+
+    pygame.draw.rect(
+        screen,
+        button_color,
+        rect,
+        border_radius=12
+    )
+
+    border_color = CYAN if hovered else PINK
+
+    pygame.draw.rect(
+        screen,
+        border_color,
+        rect,
+        2,
+        border_radius=12
+    )
+
+    bar_color = (255, 160, 210) if hovered else PINK
+
+    bar_width = 6
+    bar_height = 20
+    gap = 7
+
+    center_x, center_y = rect.center
+
+    left_bar = pygame.Rect(
+        center_x - gap // 2 - bar_width,
+        center_y - bar_height // 2,
+        bar_width,
+        bar_height
+    )
+
+    right_bar = pygame.Rect(
+        center_x + gap // 2,
+        center_y - bar_height // 2,
+        bar_width,
+        bar_height
+    )
+
+    pygame.draw.rect(
+        screen,
+        bar_color,
+        left_bar,
+        border_radius=3
+    )
+
+    pygame.draw.rect(
+        screen,
+        bar_color,
+        right_bar,
+        border_radius=3
     )
 
 def draw_tutorial_overlay():
@@ -1713,6 +1776,32 @@ while running:
 
                 mouse_pos = event.pos
 
+                if pause_menu_active:
+
+                    if resume_button.collidepoint(mouse_pos):
+                        pause_menu_active = False
+
+                        paused_duration = pygame.time.get_ticks() - run_start_ticks
+                        if run_start_ticks is not None:
+                            run_start_ticks += paused_duration
+
+                    elif restart_button.collidepoint(mouse_pos):
+                        pause_menu_sctive = False
+                        reset_game()
+                        game_state = PLAYING
+
+                    elif pause_menu_button.collidepoint(mouse_pos):
+                        pause_menu_active = False
+                        game_tutorial_active = False
+                        show_achievements = False
+                        game_state = MENU
+
+                    elif pause_quit_button.collidepoint(mouse_pos):
+                        save_data()
+                        running = False
+
+                    continue
+
                 if game_tutorial_active:
 
                     if game_tutorial_skip_button.collidepoint(mouse_pos):
@@ -1766,6 +1855,15 @@ while running:
 
                     
 
+                    continue
+
+                if(
+                    game_state == PLAYING
+                    and not game_over
+                    and not pause_menu_active
+                    and pause_button.collidepoint(mouse_pos)
+                ):
+                    pause_menu_active = True
                     continue
 
                 click_effect_pos = mouse_pos
@@ -1914,6 +2012,21 @@ while running:
 
         if event.type == pygame.KEYDOWN:
 
+            if event.key == pygame.K_ESCAPE:
+
+                if game_state == PLAYING and not game_over and not show_achievements:
+                    pause_menu_active = not pause_menu_active
+
+                    if pause_menu_active:
+                        pause_started_ticks = pygame.time.get_ticks()
+
+                    else:
+                        paused_duration = pygame.time.get_ticks() - pause_started_ticks
+                        if run_start_ticks is not None:
+                            run_start_ticks += paused_duration
+
+                continue
+
             if game_state == WELCOME:
 
                 if event.key == pygame.K_BACKSPACE:
@@ -2009,6 +2122,7 @@ while running:
         and not game_over
         and not show_achievements
         and not game_tutorial_active
+        and not pause_menu_active
     ):
         if run_start_ticks is None:
             run_start_ticks = pygame.time.get_ticks()
@@ -2496,7 +2610,7 @@ while running:
             5 + score // 1000
         )
     # update gameplay tut
-    if game_tutorial_active:
+    if game_tutorial_active and not pause_menu_active:
 
         ground_texture_offset += game_speed
         update_environment()
@@ -3556,6 +3670,13 @@ while running:
         mouse_pos = pygame.mouse.get_pos()
         draw_button(back_button, "BACK", mouse_pos)
 
+    if game_state == PLAYING and not game_over and not pause_menu_active:
+
+        draw_pause_button(
+            pause_button,
+            pygame.mouse.get_pos()
+        )
+
     # GAME OVER
     if game_over:
 
@@ -4459,6 +4580,135 @@ while running:
             game_tutorial_skip_button,
             "FINISH" if tutorial_finished else "SKIP",
             mouse_pos
+        )
+
+    if pause_menu_active:
+        pause_overlay = pygame.Surface(
+            (WIDTH, HEIGHT),
+            pygame.SRCALPHA
+        )
+
+        pause_overlay.fill((8, 4, 25, 175))
+        screen.blit(pause_overlay, (0, 0))
+
+        pause_panel = pygame.Rect(270, 35, 360, 440)
+
+        glow_surface = pygame.Surface(
+            (WIDTH, HEIGHT),
+            pygame.SRCALPHA
+        )
+
+        pygame.draw.rect(
+            glow_surface,
+            (150, 60, 225, 35),
+            pause_panel.inflate(18, 18),
+            border_radius=32
+        )
+
+        screen.blit(glow_surface, (0, 0))
+
+        shadow_rect = pause_panel.move(0, 7)
+
+        pygame.draw.rect(
+            screen,
+            (8, 5, 25),
+            shadow_rect,
+            border_radius=25
+        )
+
+        pygame.draw.rect(
+            screen,
+            (27, 17, 58),
+            pause_panel,
+            border_radius=25
+        )
+
+        pygame.draw.rect(
+            screen,
+            (150, 75, 220),
+            pause_panel,
+            2,
+            border_radius=25
+        )
+
+        inner_panel = pause_panel.inflate(-12, -12)
+
+        pygame.draw.rect(
+            screen, (75, 48, 120),
+            inner_panel, 1, border_radius=20
+        )
+
+        pygame.draw.circle(
+            screen,
+            CYAN,
+            (285, 88),
+            3
+        )
+
+        pygame.draw.line(
+            screen,
+            (100, 65, 155),
+            (320, 160),
+            (580, 160),
+            2
+        )
+
+        pause_shadow = title_font.render(
+            "PAUSED",
+            True,
+            (75, 35, 110)
+        )
+
+        pause_title = title_font.render(
+            "PAUSED",
+            True,
+            PINK
+        )
+        screen.blit(
+            pause_shadow,
+            pause_shadow.get_rect(
+                center=(WIDTH // 2 + 2, 124)
+            )
+        )
+
+        screen.blit(
+            pause_title,
+            pause_title.get_rect(
+                center=(WIDTH // 2, 105)
+            )
+        )
+
+        pause_subtitle = small_font.render(
+            "TAKE A BREATHER, PLAYER",
+            True,
+            (190, 170, 220)
+        )
+
+        screen.blit(
+            pause_subtitle,
+            pause_subtitle.get_rect(
+                center=(WIDTH // 2, 140)
+            )
+        )
+
+        mouse_pos = pygame.mouse.get_pos()
+
+        draw_button(resume_button, "RESUME", mouse_pos)
+        draw_button(restart_button, "RESTART", mouse_pos)
+        draw_button(pause_menu_button, "MAIN MENU", mouse_pos)
+        draw_button(pause_quit_button, "QUIT GAME", mouse_pos)
+
+        pause_hint = small_font.render(
+            "PRESS ESC TO RESUME",
+            True,
+            (155, 135, 190)
+        )
+
+        screen.blit(
+            pause_hint,
+            pause_hint.get_rect(
+                center=(WIDTH // 2, 445)
+            )
         )
 
 
