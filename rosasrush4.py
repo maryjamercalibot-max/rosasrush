@@ -25,6 +25,10 @@ game_state = MENU
 
 pause_menu_active = False
 
+coin_balance = 0
+coins_collected = 0
+coins = []
+
 # COLORS
 
 BACKGROUND = (18, 10, 45)
@@ -38,6 +42,12 @@ NEON_PURPLE = (150, 60, 255)
 CYAN = (80, 230, 255)
 NEON_CYAN = (0, 240, 255)
 DARK_PURPLE = (45, 25, 85)
+
+GOLD = (255, 200, 50)
+LIGHT_GOLD = (255, 235, 130)
+
+COIN_SIZE = 22
+COIN_SPAWN_CHANCE = 0.65
 
 # FONTS
 
@@ -105,6 +115,9 @@ tutorial_active = False
 tutorial_step = 0
 tutorial_completed = False
 
+tutorial_pause_opened = False
+tutorial_pause_resumed = False
+
 game_tutorial_active = False
 game_tutorial_completed = False
 game_tutorial_step = 0
@@ -141,23 +154,21 @@ tutorial_messages = [
     "Check your statistics and personal records here."
 ]
 
+
 def draw_button(rect, text, mouse_pos):
 
     global click_effect_pos, click_effect_time
 
     hovered = rect.collidepoint(mouse_pos)
-
     button_key = (text, rect.x, rect.y, rect.width, rect.height)
 
     current_scale = button_scales.get(button_key, 1.0)
-
-    target_scale = 1.06 if hovered else 1.0
-
+    target_scale = 1.05 if hovered else 1.0
     current_scale += (target_scale - current_scale) * 0.2
 
     button_scales[button_key] = current_scale
 
-    if(
+    if (
         click_effect_pos is not None
         and rect.collidepoint(click_effect_pos)
         and pygame.time.get_ticks() - click_effect_time < 130
@@ -173,51 +184,71 @@ def draw_button(rect, text, mouse_pos):
 
     animated_rect.center = rect.center
 
-    button_color = (
-        (115, 55, 165) if hovered
-        else (65, 35, 110)
+    if hovered:
+        button_color = (85, 40, 130)
+        border_color = CYAN
+        text_color = (255, 255, 255)
+
+    else:
+        button_color = (38, 22, 75)
+        border_color = (175, 85, 190)
+        text_color = (255, 215, 245)
+
+    shadow_rect = animated_rect.move(0, 4)
+
+    pygame.draw.rect(
+        screen,
+        (12, 7, 30),
+        shadow_rect,
+        border_radius=14
     )
 
-    border_color = CYAN if hovered else PINK
-
     if hovered:
-        glow_rect = animated_rect.inflate(12, 12)
+        glow_rect = animated_rect.inflate(14, 14)
 
         pygame.draw.rect(
-            screen,
-            (75, 35, 125),
+            screen, 
+            (65, 35, 110),
             glow_rect,
-            border_radius=15
+            border_radius=18
         )
 
     pygame.draw.rect(
         screen,
         button_color,
         animated_rect,
-        border_radius=12
+        border_radius=13
     )
 
     pygame.draw.rect(
         screen,
         border_color,
         animated_rect,
-        3,
-        border_radius=12
+        2,
+        border_radius=13
     )
 
-    if text == "ACHIEVEMENTS":
+    inner_rect = animated_rect.inflate(-8, -8)
+    if inner_rect.width > 0 and inner_rect.height > 0:
+        pygame.draw.rect(
+            screen,
+            (100, 65, 145),
+            inner_rect,
 
+            1,
+            border_radius=9
+        )
+
+    if text == "ACHIEVEMENTS":
         button_text = pygame.font.SysFont(
-            "bahnschrift", 
-            18,
-            bold=True
-        ).render(text, True, WHITE)
+            "bahnschrift", 18, bold=True
+        ).render(text, True, text_color)
 
     else:
         button_text = button_font.render(
             text,
             True,
-            WHITE
+            text_color
         )
 
     screen.blit(
@@ -387,9 +418,13 @@ def start_game_tutorial():
     global tutorial_orb_used, tutorial_pad_used
     global tutorial_gem_collected, tutorial_rose_collected
     global tutorial_finished
+    global tutorial_pause_opened, tutorial_pause_resumed
 
     game_tutorial_active = True
     game_tutorial_step = 0
+
+    tutorial_pause_opened = False
+    tutorial_pause_resumed = False
 
     tutorial_orb_used = False
     tutorial_pad_used = False
@@ -721,11 +756,12 @@ OBSTACLE_SAFE_DISTANCE = 250
 # SAVE AND LOAD GAME DATA
 total_gems = 0
 total_roses = 0
-total_orb_activations = 0
+total_orb_activations = 0J
 runs_completed = 0
 best_combo = 0
 best_survival_time = 0
 run_start_ticks = None
+pause_started_ticks = None
 
 SAVE_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -758,6 +794,7 @@ def save_data():
         "best_survival_time": best_survival_time,
         "tutorial_completed": tutorial_completed,
         "game_tutorial_completed": game_tutorial_completed,
+        "coin_balance": coin_balance,
 
         "achievements": {
             achievement_id: achievement["unlocked"]
@@ -782,6 +819,7 @@ def reset_saved_data():
     global runs_completed, best_combo
     global best_survival_time
     global tutorial_completed
+    global coin_balance
 
     tutorial_completed = False
     game_tutorial_completed = False
@@ -796,6 +834,7 @@ def reset_saved_data():
     runs_completed = 0
     best_combo = 0
     best_survival_time = 0
+    coin_balance = 0
 
     for achievement in achievements.values():
         achievement["unlocked"] = False
@@ -817,6 +856,7 @@ total_orb_activations = saved_data.get("total_orb_activations", 0)
 runs_completed = saved_data.get("runs_completed", 0)
 best_combo = saved_data.get("best_combo", 0)
 best_survival_time = saved_data.get("best_survival_time", 0)
+coin_balance = saved_data.get("coin_balance", 0)
 
 
 saved_achievements = saved_data.get("achievements", {})
@@ -1475,6 +1515,65 @@ def spawn_gap(x):
 
     gaps.append(new_gap)
 
+# draw coins
+def draw_coins(coin, time):
+
+    pulse = 1 + math.sin(time * 0.006) * 0.12
+
+    coin_width = int(COIN_SIZE * pulse)
+
+    coin_rect = pygame.Rect(
+        coin.centerx - coin_width // 2,
+        coin.centery - COIN_SIZE // 2,
+        coin_width,
+        COIN_SIZE
+    )
+
+    glow_surface = pygame.Surface(
+        (COIN_SIZE + 24, COIN_SIZE + 24),
+        pygame.SRCALPHA
+    )
+
+    pygame.draw.circle(
+        glow_surface,
+        (255, 200, 50, 45),
+        (
+            (COIN_SIZE + 24) // 2,
+            (COIN_SIZE + 24) // 2
+        ),
+        COIN_SIZE // 2 + 10
+    )
+
+    screen.blit(
+        glow_surface,
+        (coin.centerx - (COIN_SIZE + 24) // 2,
+         coin.centery - (COIN_SIZE + 24) // 2)
+    )
+
+    pygame.draw.ellipse(
+        screen,
+        GOLD,
+        coin_rect
+    )
+
+    pygame.draw.ellipse(
+        screen,
+        LIGHT_GOLD,
+        (
+            coin_rect.x + 5,
+            coin_rect.y + 3,
+            max(4, coin_width - 10),
+            COIN_SIZE - 6
+        )
+    )
+
+    pygame.draw.circle(
+        screen,
+        GOLD,
+        coin_rect.center,
+        4
+    )
+
 # SPAWN OBSTACLES
 def spawn_obstacle(x):
     
@@ -1640,6 +1739,8 @@ def reset_game():
     global target_scale_x, target_scale_y
     global player_animation_timer
     global combo, combo_timer, combo_bonus
+    global next_coin_x
+    global coins_collected
 
     player = pygame.Rect(
         PLAYER_X,
@@ -1695,6 +1796,8 @@ def reset_game():
     death_particles.clear()
     jump_trail.clear()
     landing_particles.clear()
+    coins.clear()
+    coins_collected = 0
 
     spawn_platform(650)
 
@@ -1742,6 +1845,7 @@ def reset_game():
     next_saw_x = WIDTH + 1200
     next_orb_x = WIDTH + 1000
     next_pad_x = WIDTH + 1600
+    next_coin_x = WIDTH + 500
 
     # Initialize grass, fireflies, and particles
     create_environment()
@@ -1779,16 +1883,30 @@ while running:
                 if pause_menu_active:
 
                     if resume_button.collidepoint(mouse_pos):
+
                         pause_menu_active = False
 
-                        paused_duration = pygame.time.get_ticks() - run_start_ticks
-                        if run_start_ticks is not None:
-                            run_start_ticks += paused_duration
+                        if pause_started_ticks is not None:
+
+                            paused_duration = (
+                                pygame.time.get_ticks() - pause_started_ticks
+                            )
+
+                            if run_start_ticks is not None:
+                                run_start_ticks += paused_duration
+
+                        if(
+                            game_tutorial_active
+                            and game_tutorial_step == 5
+                            and tutorial_pause_opened
+                        ):
+                            tutorial_pause_resumed = True
 
                     elif restart_button.collidepoint(mouse_pos):
-                        pause_menu_sctive = False
+                        pause_menu_active = False
                         reset_game()
                         game_state = PLAYING
+
 
                     elif pause_menu_button.collidepoint(mouse_pos):
                         pause_menu_active = False
@@ -1803,6 +1921,12 @@ while running:
                     continue
 
                 if game_tutorial_active:
+
+                    if game_tutorial_step == 5 and pause_button.collidepoint(mouse_pos):
+                        tutorial_pause_opened = True
+                        pause_menu_active = True
+                        pause_started_ticks = pygame.time.get_ticks()
+                        continue
 
                     if game_tutorial_skip_button.collidepoint(mouse_pos):
 
@@ -1829,6 +1953,14 @@ while running:
                                     on_ground = False
                                     tutorial_orb_used = True
                                     break
+
+                        if game_tutorial_step == 5:
+                            if pause_button.collidepoint(mouse_pos):
+                                tutorial_pause_opened = True
+                                pause_menu_active = True
+                                pause_started_ticks = pygame.time.get_ticks()
+
+                                continue
 
                         if on_ground:
                             player_velocity = JUMP_STRENGTH
@@ -2013,17 +2145,33 @@ while running:
         if event.type == pygame.KEYDOWN:
 
             if event.key == pygame.K_ESCAPE:
-
+                
                 if game_state == PLAYING and not game_over and not show_achievements:
-                    pause_menu_active = not pause_menu_active
 
-                    if pause_menu_active:
+                    if not pause_menu_active:
+
+                        pause_menu_active = True
                         pause_started_ticks = pygame.time.get_ticks()
 
+                        if game_tutorial_active and game_tutorial_step == 5:
+                            tutorial_pause_opened = True
                     else:
-                        paused_duration = pygame.time.get_ticks() - pause_started_ticks
-                        if run_start_ticks is not None:
-                            run_start_ticks += paused_duration
+                        pause_menu_active = False
+
+                        if pause_started_ticks is not None:
+                            paused_duration = (
+                                pygame.time.get_ticks() - pause_started_ticks
+                            )
+
+                            if run_start_ticks is not None:
+                                run_start_ticks += paused_duration
+
+                        if(
+                            game_tutorial_active
+                            and game_tutorial_step == 5
+                            and tutorial_pause_opened
+                        ):
+                            tutorial_pause_resumed = True
 
                 continue
 
@@ -2159,6 +2307,9 @@ while running:
         for gem in gems:
             gem.x -= game_speed
 
+        for coin in coins:
+            coin.x -= game_speed
+
         for orb in jump_orbs:
             orb["rect"].x -= game_speed
             orb["pulse"] += 0.08
@@ -2192,6 +2343,8 @@ while running:
         roses[:] = [r for r in roses if r.right > 0]
 
         gems[:] = [gem for gem in gems if gem.right > 0]
+
+        coins[:] = [coin for coin in coins if coin.right > 0]
 
         jump_orbs[:] = [
             orb for orb in jump_orbs
@@ -2283,6 +2436,7 @@ while running:
 
             next_gem_x = WIDTH + random.randint(700, 1000)
 
+
         next_rose_x -= game_speed
 
         if next_rose_x < WIDTH:
@@ -2300,6 +2454,32 @@ while running:
                     pygame.Rect(WIDTH, rose_y, 18, 18)
                 )
             next_rose_x = WIDTH + random.randint(450, 700)
+
+        #generate coins 
+
+        next_coin_x -= game_speed
+
+        if next_coin_x < WIDTH:
+
+            near_gap = any(
+                gap.left - 80 <= WIDTH <= gap.right + 80
+                for gap in gaps
+            )
+
+            near_obstacle = any(
+                abs(obstacle["rect"].centerx - WIDTH) < 120
+                for obstacle in obstacles
+            )
+
+            if not near_gap and not near_obstacle:
+
+                coin_y = random.randint(300, 365)
+
+                coins.append(
+                    pygame.Rect(WIDTH, coin_y, COIN_SIZE, COIN_SIZE)
+                )
+
+            next_coin_x = WIDTH + random.randint(600, 900)
 
 
         # Generate mushrooms throughout the level
@@ -2590,10 +2770,20 @@ while running:
                 if combo >= 5:
                     unlock_achievement("combo_starter")
 
+
                 # calculate combo bonus
                 combo_bonus = combo * 10
                 score += combo_bonus
+        #collect coims
+        for coin in coins[:]:
+            if player.colliderect(coin):
 
+                coins.remove(coin)
+
+                coin_balance += 1
+                coins_collected += 1
+
+                save_data()
         # Score and speed
         score += 1
 
@@ -2739,6 +2929,10 @@ while running:
                 game_tutorial_step = 5
 
         elif game_tutorial_step == 5:
+            if tutorial_pause_resumed:
+                game_tutorial_step = 6
+
+        elif game_tutorial_step == 6:
             tutorial_finished = True
 
         if player.bottom >= GROUND_Y and player_velocity >= 0:
@@ -3179,6 +3373,13 @@ while running:
                 (gem.left + 6, gem.centery)
             ]
         )
+
+    current_time = pygame.time.get_ticks()
+
+    for coin in coins:
+        draw_coins(coin, current_time)
+
+    
     # DRAW MUSHROOMS
 
     draw_mushrooms()
@@ -3408,6 +3609,16 @@ while running:
 
         screen.blit(gem_text, (25, 110))
         screen.blit(best_text, (25, 140))
+
+        #coin hud
+
+        coin_text = small_font.render(
+            f"Coins: {coin_balance}",
+            True,
+            GOLD
+        )
+
+        screen.blit(coin_text, (25, 170))
 
     # ACHIEVEMENT NOTIFICATION
 
@@ -3670,13 +3881,6 @@ while running:
         mouse_pos = pygame.mouse.get_pos()
         draw_button(back_button, "BACK", mouse_pos)
 
-    if game_state == PLAYING and not game_over and not pause_menu_active:
-
-        draw_pause_button(
-            pause_button,
-            pygame.mouse.get_pos()
-        )
-
     # GAME OVER
     if game_over:
 
@@ -3866,6 +4070,28 @@ while running:
         draw_button(help_button, "HOW TO PLAY", mouse_pos)
         draw_button(achievements_button, "ACHIEVEMENTS", mouse_pos)
         draw_button(quit_button, "QUIT", mouse_pos) 
+
+        coin_text = small_font.render(
+            str(coin_balance),
+            True,
+            GOLD
+        )
+
+        screen.blit(coin_text, (WIDTH - 105, 30))
+
+        pygame.draw.circle(
+            screen,
+            GOLD,
+            (WIDTH - 120, 45),
+            10
+        )
+
+        pygame.draw.circle(
+            screen,
+            LIGHT_GOLD,
+            (WIDTH - 120, 45),
+            5
+        )
 
         #wc screen
     elif game_state == WELCOME:
@@ -4103,6 +4329,7 @@ while running:
             "PRACTICE TUTORIAL",
             mouse_pos
         )
+
 
 # STAT PAGE
 
@@ -4510,8 +4737,15 @@ while running:
 
         screen.blit(fade_surface, (0, 0))
 
+    if game_state == PLAYING and not game_over and not pause_menu_active:
+        draw_pause_button(
+            pause_button,
+            pygame.mouse.get_pos()
+        )
+
     if tutorial_active:
         draw_tutorial_overlay()
+
 
     if game_tutorial_active:
         panel = pygame.Rect(120, 20, 600, 100)
@@ -4530,7 +4764,8 @@ while running:
             "3. COLLECT ROSES",
             "4. ACTIVATE THE ORB",
             "5. USE THE JUMP PAD",
-            "6. YOU DID IT!"
+            "6. LEARN TO PAUSE",
+            "7. YOU DID IT!"
         ]
 
         tutorial_instructions = [
@@ -4539,6 +4774,7 @@ while running:
             "Collect the rose as you pass it.",
             "While airborne, pres SPACE or click near the orb.",
             "Land on the glowing pad. It will bounce you automatically!",
+            "Click the pause button or press ESC to pause the game.",
             "You completed the practice course. Ready to play?"
         ]
 
@@ -4557,13 +4793,50 @@ while running:
         screen.blit(heading, (panel.x + 20, panel.y + 17))
         screen.blit(message, (panel.x + 20, panel.y + 57))
 
-        arrow_start = (PLAYER_X + 65, 175)
-        arrow_end = (PLAYER_X + 20, player.top - 10)
+        if game_tutorial_step == 5:
+            arrow_start = (780, 100)
+            arrow_end = (pause_button.centerx, pause_button.centery + 15)
+
+            arrow_color = CYAN
+            arrow_width = 6
+            arrow_size = 18
+
+        else:
+            arrow_start = (PLAYER_X + 65, 175)
+            arrow_end = (PLAYER_X + 20, player.top - 10)
+
+            arrow_color = PINK
+            arrow_width = 4
+            arrow_size = 12
 
         pygame.draw.line(
             screen,
-            PINK, arrow_start, arrow_end,
-            4
+            arrow_color,
+            arrow_start,
+            arrow_end,
+            arrow_width
+        )
+
+        arrow_angle = math.atan2(
+            arrow_end[1] - arrow_start[1],
+            arrow_end[0] - arrow_start[0]
+        )
+
+        left = (
+            arrow_end[0] - arrow_size * math.cos(arrow_angle - math.pi / 6),
+            arrow_end[1] - arrow_size * math.sin(arrow_angle - math.pi / 6)
+
+        )
+
+        right = (
+            arrow_end[0] - arrow_size * math.cos(arrow_angle + math.pi / 6),
+            arrow_end[1] - arrow_size * math.sin(arrow_angle + math.pi / 6)
+        )
+
+        pygame.draw.polygon(
+            screen,
+            arrow_color,
+            [arrow_end, left, right]
         )
 
         pygame.draw.polygon(
@@ -4576,6 +4849,12 @@ while running:
         )
 
         mouse_pos = pygame.mouse.get_pos()
+
+        if game_tutorial_step == 5: 
+            game_tutorial_skip_button.topleft = (25, 420)
+
+        else:
+            game_tutorial_skip_button.topleft = (730, 25)
         draw_button(
             game_tutorial_skip_button,
             "FINISH" if tutorial_finished else "SKIP",
