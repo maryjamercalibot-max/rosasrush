@@ -4520,37 +4520,122 @@ while running:
                     preview_color = NEON_PURPLE
                     preview_outline = NEON_CYAN
 
+                preview_surface = pygame.Surface(
+                    (40, 40),
+                    pygame.SRCALPHA
+                )
+
                 pygame.draw.rect(
-                    screen,
+                    preview_surface,
+                    preview_color,
+                    (4, 4, 32, 32),
+                    border_radius=5
+                )
+
+                pygame.draw.rect(
+                    preview_surface,
                     preview_outline,
-                    (preview_x - 16, preview_y - 16, 32, 32),
+                    (4, 4, 32, 32),
                     3,
                     border_radius=5
                 )
 
+                pygame.draw.rect(
+                    preview_surface,
+                    PINK,
+                    (12, 12, 16, 16),
+                    2,
+                    border_radius=3
+                )
+
+                if item["name"] == "Neon Cube":
+                    glow_pulse =(
+                        math.sin(pygame.time.get_ticks() * 0.006) + 1
+                    ) / 2
+
+                    glow_alpha = int(40 + glow_pulse * 100)
+
+                    glow_surface = pygame.Surface(
+                        (65, 65),
+                        pygame.SRCALPHA
+                    )
+
+                    pygame.draw.circle(
+                        glow_surface,
+                        (*CYAN, glow_alpha),
+                        (32, 32),
+                        25
+                    )
+
+                    screen.blit(
+                        glow_surface,
+                        glow_surface.get_rect(
+                            center=(preview_x, preview_y)
+                        )
+                    )
+
+                rotation_angle = (
+                    pygame.time.get_ticks() * 0.08
+                ) % 360
+
+                rotated_preview = pygame.transform.rotate(
+                    preview_surface,
+                    rotation_angle
+                )
+
+                screen.blit(
+                    rotated_preview,
+                    rotated_preview.get_rect(
+                        center=(preview_x, preview_y)
+                    )
+                )
+
             elif shop_category == "TRAILS":
 
-                if item["name"] == "Pink Trail":
-                    preview_colors = [PINK] * 3
+                preview_time = pygame.time.get_ticks() * 0.005
+
+                if item["name"] == "Pink Trails":
+                    preview_colors = [PINK]
 
                 elif item["name"] == "Cyan Trail":
                     preview_colors = [CYAN] * 3
 
-                elif item["name"] == "Rainbow Trail":
-                    preview_colors = RAINBOW_COLORS[:3]
 
-                for particle_index, color in enumerate(preview_colors):
+                else:
+                    preview_colors = RAINBOW_COLORS
+
+                for particle_index in range(5):
+
+                    particle_x = (
+                        preview_x - 35 +
+                        (particle_index * 17) -
+                        (preview_time * 20) % 17
+                    )
+
+                    if item["name"] == "Rainbow Trail":
+                        color = preview_colors[
+                            (particle_index + int(preview_time)) %
+                            len(preview_colors)
+                        ]
+
+                    else:
+                        color = preview_colors[0]
+
+                    particle_size = 7 - particle_index * 0.7
 
                     pygame.draw.circle(
                         screen,
                         color,
                         (
-                            preview_x - 20 + particle_index * 20,
-                            preview_y
+                            int(particle_x),
+                            int(preview_y)
                         ),
-                        7 - particle_index
+                        max(2, int(particle_size))
                     )
+
             else:
+                preview_time = pygame.time.get_ticks() * 0.004
+
                 if item["name"] == "Rose Burst":
                     preview_colors = [PINK, ROSE_RED, PINK]
 
@@ -4560,24 +4645,47 @@ while running:
                 else:
                     preview_colors = [CYAN, NEON_PURPLE, NEON_CYAN]
 
-                for particle_index, color in enumerate(preview_colors):
+                for particle_index in range(8):
 
-                    particle_x = preview_x - 25 + particle_index * 25
+                    angle = (
+                        particle_index * 45 +
+                        preview_time * 30
+                    )
+
+                    distance = 12 + (
+                        math.sin(preview_time + particle_index) * 8
+                    )
+
+                    particle_x = preview_x + math.cos(
+                        math.radians(angle)
+                    ) * distance
+
+                    particle_y = preview_y + math.sin(
+                        math.radians(angle)
+                    ) * distance
+
+                    color = preview_colors[
+                        particle_index % len(preview_colors)
+                    ]
+
+                    particle_size = 4 + int(
+                        (math.sin(preview_time * 2 + particle_index) + 1) * 2
+                    )
 
                     if item["name"] == "Star Burst":
                         draw_star(
                             screen,
                             color,
-                            (particle_x, preview_y),
-                            11
+                            (int(particle_x), int(particle_y)),
+                            particle_size + 3
                         )
 
                     else:
                         pygame.draw.circle(
                             screen,
                             color,
-                            (particle_x, preview_y),
-                            8
+                            (int(particle_x), int(particle_y)),
+                            particle_size
                         )
 
             if shop_category == "CUBES":
