@@ -46,6 +46,13 @@ For Week 4:
 2. Download RosasRush-v1.2.0.exe from release assets.
 3. Open the downloaded file to play.
 
+For Week 5:
+[Rosas Rush v.1.3.0 - Download Demo]()
+
+1. Open the release link above.
+2. Download RosasRush-v1.3.0.exe from release assets.
+3. Open the downloaded file to play.
+
 You dont need to install python or pygame separately.
 
 ## Made With
@@ -97,6 +104,24 @@ You dont need to install python or pygame separately.
 - Made the statistics page scrollable
 - Added a welcome screen that also asks the player's name before playing
 - Added a reset button that resets everything, including all the progress made
+
+### WEEK 5 (rosasrush4.py)
+
+- Improved some animations on buttons and when shifting from different pages/screens
+- Prevented the game from closing using the x button of windows. Only the in-game QUIT button can close the game
+- Added a first time tutorial so that new players can easily navigate the game for the long run
+- Added a proper pause menu that appears when the player presses the ESC button during gameplay
+- Also added an actual pause button on the gameplay HUD
+- Redesigned the other existing buttons and added better gradients, glow, borders, and hover effects
+- the newly created pause button was added in the tutorial steps
+- Added coin collectibles to be used to buy for game improvements
+- Also created a coin wallet so players can see how many coins they have collected already
+- Next is I built the coin shop where players can buy different items, including cube skins, different trail particles, and different death effects
+- added equip button for owned items in the shop, and an equipped label for the currently selected item
+- Designed the coin shop visual previews. It shows a miniature preview of each cube skin, shows sample particles for each trail, and sample effects for each death effects
+- Made the system highlight the currently equipped item to make it easier to see which cube, trail, or death effect is currently selected
+- also made sure to keep the purchase and equip buttons functional
+- to make it more visually appealing, i improved the previews by animating them. Rose cube slowly rotates in its preview, Neon Cube has a glowing effect, Trails particles move instead of staying still, and the death effects particles run in circles
 
 ## About the Project
 
