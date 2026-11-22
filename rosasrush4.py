@@ -79,6 +79,8 @@ shop_item_buttons = [
 
 shop_notice = ""
 shop_notice_timer = 0
+selected_shop_item = None
+
 
 # COLORS
 
@@ -2238,17 +2240,23 @@ while running:
                 elif game_state == SHOP:
                     if cube_category_button.collidepoint(mouse_pos):
                         shop_category = "CUBES"
+                        selected_shop_item = None
 
                     elif trail_category_button.collidepoint(mouse_pos):
                         shop_category = "TRAILS"
+                        selected_shop_item = None
 
                     elif death_category_button.collidepoint(mouse_pos):
                         shop_category = "DEATH EFFECTS"
+                        selected_shop_item = None
 
                     elif back_button.collidepoint(mouse_pos):
                         game_state = MENU
+                        selected_shop_item = None
 
                     else:
+                        item_selected = False
+
                         for index, item_button in enumerate(shop_item_buttons):
 
                             if item_button.collidepoint(mouse_pos):
@@ -2256,6 +2264,9 @@ while running:
                                 item = shop_items[shop_category][index]
                                 item_name = item["name"]
                                 item_price = item["price"]
+
+                                selected_shop_item = item_name
+                                item_selected = True
 
                                 if item_name in owned_items:
 
@@ -2276,6 +2287,21 @@ while running:
 
                                 else:
                                     shop_notice = "Not enough coins!"
+                                    shop_notice_time = pygame.time.get_ticks()
+
+                                break
+                        if not item_selected:
+                            for index, item in enumerate(shop_items[shop_category]):
+                                item_card = pygame.Rect(
+                                    105 + index * 240,
+                                    240,
+                                    210,
+                                    145
+                                )
+
+                                if item_card.collidepoint(mouse_pos):
+                                    selected_shop_item = item["name"]
+                                    break
 
                 elif game_state == HOW_TO_PLAY:
 
@@ -4697,7 +4723,16 @@ while running:
             else:
                 equipped_item = equipped_death_effect
 
-            if item["name"] == equipped_item:
+            if item["name"] == selected_shop_item:
+                pygame.draw.rect(
+                    screen,
+                    GOLD,
+                    item_card,
+                    4,
+                    border_radius=12
+                )
+
+            elif item["name"] == equipped_item:
                 pygame.draw.rect(
                     screen,
                     CYAN,
@@ -4748,6 +4783,83 @@ while running:
                 )
             else:
                 shop_notice = ""
+
+            if selected_shop_item is not None:
+
+                selected_item_data = next(
+                    (
+                        item for item in shop_items[shop_category]
+                        if item["name"] == selected_shop_item
+                    ),
+                    None
+                )
+                if selected_item_data is not None:
+
+                    inspection_panel = pygame.Rect(
+                        190, 100, 520, 300
+                    )
+
+                    pygame.draw.rect(
+                        screen,
+                        (30, 18, 65),
+                        inspection_panel,
+                        border_radius=18
+                    )
+
+                    pygame.draw.rect(
+                        screen,
+                        GOLD,
+                        inspection_panel,
+                        3,
+                        border_radius=18
+                    )
+
+                    inspection_title = title_font.render(
+                        selected_item_data["name"],
+                        True,
+                        WHITE
+                    )
+
+                    screen.blit(
+                        inspection_title,
+                        inspection_title.get_rect(
+                            center=(WIDTH // 2, 140)
+                        )
+                    )
+
+                    price_text = small_font.render(
+                        f"Price: {selected_item_data['price']} coins",
+                        True,
+                        GOLD
+                    )
+
+                    screen.blit(
+                        price_text,
+                        price_text.get_rect(
+                            center=(WIDTH // 2, 185)
+                        )
+                    )
+
+                    if selected_shop_item in owned_items:
+                        status_message = "OWNED"
+                        status_color = CYAN
+
+                    else:
+                        status_message = "NOT OWNED"
+                        status_color = PINK
+
+                    status_text = small_font.render(
+                        status_message,
+                        True,
+                        status_color
+                    )
+
+                    screen.blit(
+                        status_text,
+                        status_text.get_rect(
+                            center=(WIDTH // 2, 225)
+                        )
+                    )
 
         draw_button(back_button, "BACK", pygame.mouse.get_pos())
 

@@ -122,6 +122,8 @@ You dont need to install python or pygame separately.
 - Made the system highlight the currently equipped item to make it easier to see which cube, trail, or death effect is currently selected
 - also made sure to keep the purchase and equip buttons functional
 - to make it more visually appealing, i improved the previews by animating them. Rose cube slowly rotates in its preview, Neon Cube has a glowing effect, Trails particles move instead of staying still, and the death effects particles run in circles
+- i added an inspection system and fixed item selection and selection highlighting
+- i also designed an item inspection panel that shows item name, item price in coins, and ownership status
 
 ## About the Project
 
