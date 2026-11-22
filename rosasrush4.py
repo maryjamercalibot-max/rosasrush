@@ -228,7 +228,6 @@ tutorial_messages = [
     "Check your statistics and personal records here."
 ]
 
-
 def draw_button(rect, text, mouse_pos):
 
     global click_effect_pos, click_effect_time
@@ -329,6 +328,7 @@ def draw_button(rect, text, mouse_pos):
         button_text,
         button_text.get_rect(center=animated_rect.center)
     )
+
 
 def draw_pause_button(rect, mouse_pos):
     hovered = rect.collidepoint(mouse_pos)

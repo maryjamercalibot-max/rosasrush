@@ -47,7 +47,7 @@ For Week 4:
 3. Open the downloaded file to play.
 
 For Week 5:
-[Rosas Rush v.1.3.0 - Download Demo]()
+[Rosas Rush v.1.3.0 - Download Demo](https://github.com/maryjamercalibot-max/rosasrush/releases/tag/v1.3.0)
 
 1. Open the release link above.
 2. Download RosasRush-v1.3.0.exe from release assets.
