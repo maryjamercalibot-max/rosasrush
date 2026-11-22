@@ -21,6 +21,7 @@ HOW_TO_PLAY = "how_to_play"
 STATISTICS = "statistics"
 WELCOME = "welcome"
 CONFIRM_RESET = "confirm_reset"
+SHOP = "shop"
 game_state = MENU
 
 pause_menu_active = False
@@ -28,6 +29,56 @@ pause_menu_active = False
 coin_balance = 0
 coins_collected = 0
 coins = []
+
+#shop sys
+equipped_cube = "Classic Cube"
+equipped_trail = None
+equipped_death_effect = None
+
+trail_particles = []
+TRAIL_SPAWN_DELAY = 3
+trail_timer = 0
+
+shop_category = "CUBES"
+
+shop_categories = [
+    "CUBES",
+    "TRAILS",
+    "DEATH EFFECTS"
+]
+
+shop_scroll = 0
+
+shop_items = {
+    "CUBES": [
+        {"name": "Classic Cube", "price": 0},
+        {"name": "Rose Cube", "price": 25},
+        {"name": "Neon Cube", "price": 50}
+    ],
+
+    "TRAILS": [
+        {"name": "Pink Trail", "price": 30},
+        {"name": "Cyan Trail", "price": 40},
+        {"name": "Rainbow Trail", "price": 60}
+    ],
+
+    "DEATH EFFECTS": [
+        {"name": "Rose Burst", "price":35},
+        {"name": "Star Burst", "price": 45},
+        {"name": "Neon Burst", "price": 60}
+    ]
+}
+
+owned_items = ["Classic Cube"]
+
+shop_item_buttons = [
+    pygame.Rect(115, 325, 190, 48),
+    pygame.Rect(355, 325, 190, 48),
+    pygame.Rect(595, 325, 190, 48)
+]
+
+shop_notice = ""
+shop_notice_timer = 0
 
 # COLORS
 
@@ -42,6 +93,7 @@ NEON_PURPLE = (150, 60, 255)
 CYAN = (80, 230, 255)
 NEON_CYAN = (0, 240, 255)
 DARK_PURPLE = (45, 25, 85)
+GREEN = (100, 255, 150)
 
 GOLD = (255, 200, 50)
 LIGHT_GOLD = (255, 235, 130)
@@ -49,6 +101,20 @@ LIGHT_GOLD = (255, 235, 130)
 COIN_SIZE = 22
 COIN_SPAWN_CHANCE = 0.65
 
+ROSE_CUBE_MAIN = (220, 65, 110)
+ROSE_CUBE_OUTLINE =(225, 170, 195)
+
+NEON_CUBE_MAIN = (80, 230, 255)
+NEON_CUBE_OUTLINE = (180, 100, 255)
+
+RAINBOW_COLORS = [
+    (255, 80, 140),
+    (255, 180, 70),
+    (255, 240, 90),
+    (80, 255, 180),
+    (80, 200, 255),
+    (180, 100, 255)
+]
 # FONTS
 
 title_font = pygame.font.SysFont("bahnschrift", 72, bold=True)
@@ -65,10 +131,16 @@ welcome_text_font = pygame.font.SysFont("bahnschrift", 18)
 
 # MENU BUTTONS
 
-play_button = pygame.Rect(340, 195, 220, 55)
-help_button = pygame.Rect(340, 265, 220, 50)
-achievements_button = pygame.Rect(340, 330, 220, 50)
-quit_button = pygame.Rect(340, 390, 220, 50)
+play_button = pygame.Rect(340, 175, 220, 42)
+help_button = pygame.Rect(340, 225, 220, 42)
+achievements_button = pygame.Rect(340, 275, 220, 42)
+shop_button = pygame.Rect(340, 325, 220, 42)
+quit_button = pygame.Rect(340, 375, 220, 42)
+
+cube_category_button = pygame.Rect(130, 205, 190, 50)
+trail_category_button = pygame.Rect(355, 205, 190, 50)
+death_category_button = pygame.Rect(580, 205, 190, 50)
+
 stats_button = pygame.Rect(24, 24, 52, 52)
 back_button = pygame.Rect(340, 420, 220, 50)
 reset_data_button = pygame.Rect(650, 420, 160, 40)
@@ -419,6 +491,9 @@ def start_game_tutorial():
     global tutorial_gem_collected, tutorial_rose_collected
     global tutorial_finished
     global tutorial_pause_opened, tutorial_pause_resumed
+    global trail_particles
+
+    trail_timer = 0
 
     game_tutorial_active = True
     game_tutorial_step = 0
@@ -449,6 +524,8 @@ def start_game_tutorial():
     game_speed = 4
 
     platforms.clear()
+    trail_particles.clear()
+    trial_timer = 0
     gaps.clear()
     obstacles.clear()
     gems.clear()
@@ -768,6 +845,25 @@ SAVE_FILE = os.path.join(
     "rosas_rush_data.json"
 )
 
+def equip_shop_item(item_name, category):
+
+    global equipped_cube
+    global equipped_trail
+    global equipped_death_effect
+
+    if item_name not in owned_items:
+        return
+
+    if category == "CUBES":
+        equipped_cube = item_name
+
+    elif category == "TRAILS":
+        equipped_trail = item_name
+
+    elif category == "DEATH EFFECTS":
+        equipped_death_effect = item_name
+    save_data()
+
 def load_data():
     try:
         with open(SAVE_FILE, "r", encoding="utf-8") as file:
@@ -795,6 +891,10 @@ def save_data():
         "tutorial_completed": tutorial_completed,
         "game_tutorial_completed": game_tutorial_completed,
         "coin_balance": coin_balance,
+        "owned_items": owned_items,
+        "equipped_cube": equipped_cube,
+        "equipped_trail": equipped_trail,
+        "equipped_death_effect": equipped_death_effect,
 
         "achievements": {
             achievement_id: achievement["unlocked"]
@@ -810,6 +910,10 @@ def save_data():
 
 def reset_saved_data():
 
+    global equipped_cube
+    global equipped_trail
+    global equipped_death_effect
+
     global game_tutorial_completed
     global player_name
     global name_input_text
@@ -820,12 +924,19 @@ def reset_saved_data():
     global best_survival_time
     global tutorial_completed
     global coin_balance
+    global owned_items
 
     tutorial_completed = False
     game_tutorial_completed = False
 
     player_name = ""
     name_input_text = ""
+
+    owned_items = ["Classic Cube"]
+
+    equipped_cube = "Classic Cube"
+    equipped_trail = None
+    equipped_death_effect = None
 
     high_score = 0
     total_gems = 0
@@ -857,6 +968,16 @@ runs_completed = saved_data.get("runs_completed", 0)
 best_combo = saved_data.get("best_combo", 0)
 best_survival_time = saved_data.get("best_survival_time", 0)
 coin_balance = saved_data.get("coin_balance", 0)
+
+owned_items = saved_data.get("owned_items", ["Classic Cube"])
+
+
+equipped_cube = saved_data.get("equipped_cube", "Classic Cube")
+equipped_trail = saved_data.get("equipped_trail", None)
+equipped_death_effect = saved_data.get("equipped_death_effect", None)
+
+if not isinstance(owned_items, list):
+    owned_items = ["Classic Cube"]
 
 
 saved_achievements = saved_data.get("achievements", {})
@@ -984,23 +1105,88 @@ def draw_saw(surface, x, y, radius, angle):
     )
 
 # particle
+
+def create_trail_particle():
+    if equipped_trail is None:
+        return
+
+    trail_color = PINK
+
+    if equipped_trail == "Cyan Trail":
+        trail_color = CYAN
+
+    elif equipped_trail == "Rainbow Trail":
+        trail_color = random.choice(RAINBOW_COLORS)
+
+    trail_particles.append({
+        "x": player.left,
+        "y": player.centery,
+        "radius": random.randint(3, 6),
+        "color": trail_color,
+        "life": 25
+    })
+
+def draw_star(surface, color, center, size):
+    points = []
+
+    for i in range(10):
+
+        angle = math.radians(i * 36 - 90)
+
+        if i % 2 == 0:
+            radius = size
+        else:
+            radius = size * 0.45
+
+        x = center[0] + math.cos(angle) * radius
+        y = center[1] + math.sin(angle) * radius
+
+        points.append((x, y))
+    pygame.draw.polygon(surface, color, points)
+    
 def create_death_effect():
 
     global death_particles
     global shockwave_radius, shockwave_alpha
 
     shockwave_radius = 5
-    shockwave_alpha = 255
+    shockwave_alpha = 225
 
     death_particles = []
 
-    colors = [
-        PINK,
-        ROSE_RED,
-        NEON_PURPLE,
-        CYAN,
-        WHITE
-    ]
+    #choose de
+    if equipped_death_effect == "Rose Burst":
+
+        colors = [
+            PINK,
+            ROSE_RED,
+            (255, 150, 190)
+        ]
+
+    elif equipped_death_effect == "Star Burst":
+        colors = [
+            (255, 230, 100),
+            WHITE,
+            (255, 180, 60)
+        ]
+
+    elif equipped_death_effect == "Neon Burst":
+
+        colors = [
+            CYAN,
+            NEON_PURPLE,
+            NEON_CYAN,
+
+        ]
+
+    else:
+        colors = [
+            PINK,
+            ROSE_RED,
+            NEON_PURPLE,
+            CYAN,
+            WHITE
+        ]
 
     for _ in range(35):
 
@@ -1015,7 +1201,8 @@ def create_death_effect():
             "size": random.randint(4, 8),
             "color": random.choice(colors),
             "life": 45,
-            "max_life": 45
+            "max_life": 45,
+            "shape": "star" if equipped_death_effect == "Star Burst" else "circle"
         })
 
 # DRAW BACKGROUND
@@ -2041,9 +2228,54 @@ while running:
                         show_achievements = True
                         game_state = PLAYING
 
+                    elif shop_button.collidepoint(mouse_pos):
+                        game_state = SHOP
+
                     elif quit_button.collidepoint(mouse_pos):
                         save_data()
                         running = False
+
+                elif game_state == SHOP:
+                    if cube_category_button.collidepoint(mouse_pos):
+                        shop_category = "CUBES"
+
+                    elif trail_category_button.collidepoint(mouse_pos):
+                        shop_category = "TRAILS"
+
+                    elif death_category_button.collidepoint(mouse_pos):
+                        shop_category = "DEATH EFFECTS"
+
+                    elif back_button.collidepoint(mouse_pos):
+                        game_state = MENU
+
+                    else:
+                        for index, item_button in enumerate(shop_item_buttons):
+
+                            if item_button.collidepoint(mouse_pos):
+
+                                item = shop_items[shop_category][index]
+                                item_name = item["name"]
+                                item_price = item["price"]
+
+                                if item_name in owned_items:
+
+                                    equip_shop_item(item_name, shop_category)
+
+                                    shop_notice = "Item equipped!"
+                                    shop_notice_time = pygame.time.get_ticks()
+
+                                elif coin_balance >= item_price:
+
+                                    coin_balance -= item_price
+                                    owned_items.append(item_name)
+
+                                    equip_shop_item(item_name, shop_category)
+
+                                    shop_notice = "Purchased and equipped!"
+                                    shop_notice_time = pygame.time.get_ticks()
+
+                                else:
+                                    shop_notice = "Not enough coins!"
 
                 elif game_state == HOW_TO_PLAY:
 
@@ -2504,6 +2736,19 @@ while running:
                 ))
 
             next_mushroom_x = WIDTH + random.randint(250, 500)
+
+        # Generate Trail
+        if (
+            game_state == PLAYING
+            and not game_over
+            and not pause_menu_active
+        ):
+            trail_timer += 1
+
+            if trail_timer >= TRAIL_SPAWN_DELAY:
+
+                create_trail_particle()
+                trail_timer = 0
 
         # smooth player animation
 
@@ -2982,6 +3227,17 @@ while running:
         p for p in landing_particles
         if p["life"] > 0
     ]
+
+    # update trail particles
+    for particle in trail_particles[:]:
+
+        particle["x"] -= game_speed
+        particle["life"] -= 1
+        particle["radius"] *= 0.96
+
+        if particle["life"] <= 0 or particle["radius"] < 1:
+            trail_particles.remove(particle)
+
 
     # update death particles
 
@@ -3513,6 +3769,15 @@ while running:
             )
         )
 
+    # draw trail
+    for particle in trail_particles:
+        pygame.draw.circle(
+            screen,
+            particle["color"],
+            (int(particle["x"]), int(particle["y"])),
+            max(1, int(particle["radius"]))
+        )
+
     # DRAW PLAYER
     # create animation
 
@@ -3527,18 +3792,31 @@ while running:
         pygame.SRCALPHA
     )
 
-    #Main cube
+    # select cube skin
+    if equipped_cube == "Rose Cube":
+        cube_color = ROSE_CUBE_MAIN
+        outline_color = ROSE_CUBE_OUTLINE
 
+    elif equipped_cube == "Neon Cube":
+        cube_color = NEON_CUBE_MAIN
+        outline_color = NEON_CUBE_OUTLINE
+
+    else:
+        cube_color = NEON_PURPLE
+        outline_color = NEON_CYAN
+
+    #MAIN CUBE
     pygame.draw.rect(
         cube_surface,
-        NEON_PURPLE,
+        cube_color,
         (0, 0, animated_width, animated_height),
         border_radius=5
     )
 
+    #outline
     pygame.draw.rect(
         cube_surface,
-        NEON_CYAN,
+        outline_color,
         (0, 0, animated_width, animated_height),
         3,
         border_radius=5
@@ -3555,7 +3833,6 @@ while running:
         ),
         2
     )
-
     rotated_cube = pygame.transform.rotate(
         cube_surface,
         cube_angle
@@ -3992,26 +4269,41 @@ while running:
 
         center = (size * 3, size * 3)
 
-        pygame.draw.circle(
-            particle_surface,
-            (*particle["color"], alpha // 5),
-            center,
-            size * 3
-        )
+        if not isinstance(particle["color"], (tuple, list)):
+            print("INVALID DEATH PARTICLE COLOR:", particle["color"])
+            continue
 
-        pygame.draw.circle(
-            particle_surface,
-            (*particle["color"], alpha // 2),
-            center,
-            size * 2
-        )
+        if particle.get("shape") == "star":
 
-        pygame.draw.circle(
-            particle_surface,
-            (*particle["color"], alpha),
-            center,
-            size
-        )
+            draw_star(
+                particle_surface,
+                (*particle["color"], alpha),
+                center,
+                size * 2
+            )
+
+        else:
+
+            pygame.draw.circle(
+                particle_surface,
+                (*particle["color"], alpha // 5),
+                center,
+                size * 3
+            )
+
+            pygame.draw.circle(
+                particle_surface,
+                (*particle["color"], alpha // 2).
+                center,
+                size * 2
+            )
+
+            pygame.draw.circle(
+                particle_surface,
+                (*particle["color"], alpha),
+                center,
+                size
+            )
 
         screen.blit(
             particle_surface,
@@ -4069,6 +4361,7 @@ while running:
         draw_button(play_button, "PLAY", mouse_pos)
         draw_button(help_button, "HOW TO PLAY", mouse_pos)
         draw_button(achievements_button, "ACHIEVEMENTS", mouse_pos)
+        draw_button(shop_button, "COIN SHOP", mouse_pos)
         draw_button(quit_button, "QUIT", mouse_pos) 
 
         coin_text = small_font.render(
@@ -4092,6 +4385,264 @@ while running:
             (WIDTH - 120, 45),
             5
         )
+
+    elif game_state == SHOP:
+
+        screen.fill(BACKGROUND)
+        draw_menu_atmosphere()
+
+        shop_title = title_font.render(
+            "COIN SHOP",
+            True,
+            GOLD
+        )
+
+        screen.blit(
+            shop_title,
+            shop_title.get_rect(center=(WIDTH // 2, 65))
+        )
+
+        coin_text = small_font.render(
+            f"COINS: {coin_balance}",
+            True,
+            GOLD
+        )
+
+        screen.blit(coin_text, (WIDTH - 170, 25))
+
+        shop_panel = pygame.Rect(80, 115, 740, 275)
+
+        pygame.draw.rect(
+            screen,
+            DARK_PURPLE,
+            shop_panel,
+            border_radius=18
+        )
+
+        pygame.draw.rect(
+            screen,
+            PURPLE,
+            shop_panel,
+            3,
+            border_radius=18
+        )
+
+        shop_message = small_font.render(
+            "Choose a category to customize your cube!",
+            True,
+            WHITE
+        )
+
+        screen.blit(
+            shop_message,
+            shop_message.get_rect(center=(WIDTH // 2, 155))
+        )
+
+        draw_button(
+            cube_category_button,
+            "CUBES",
+            pygame.mouse.get_pos()
+        )
+
+        draw_button(
+            trail_category_button,
+            "TRAILS",
+            pygame.mouse.get_pos()
+        )
+
+        draw_button(
+            death_category_button,
+            "DEATH EFFECTS",
+            pygame.mouse.get_pos()
+        )
+
+        current_items = shop_items[shop_category]
+
+        for index, item in enumerate(current_items):
+            item_card = pygame.Rect(
+                105 + index * 240,
+                240,
+                210,
+                145
+            )
+
+            # item card hover animation
+            mouse_over_card = item_card.collidepoint(mouse_pos)
+
+            card_color = (45, 28, 90) if mouse_over_card else (35, 20, 75)
+            border_color = CYAN if mouse_over_card else PURPLE
+            border_width = 3 if mouse_over_card else 2
+
+            pygame.draw.rect(
+                screen,
+                card_color,
+                item_card,
+                border_radius=12
+            )
+
+            pygame.draw.rect(
+                screen,
+                border_color,
+                item_card,
+                border_width,
+                border_radius=12
+            )
+
+            item_name_text = small_font.render(
+                item["name"],
+                True,
+                WHITE
+            )
+
+            screen.blit(
+                item_name_text,
+                item_name_text.get_rect(
+                    center=(item_card.centerx, 260)
+                )
+            )
+
+            # item prev
+
+            preview_x = item_card.centerx
+            preview_y = 305
+
+            if shop_category == "CUBES":
+
+                if item["name"] == "Rose Cube":
+                    preview_color = ROSE_CUBE_MAIN
+                    preview_outline = ROSE_CUBE_OUTLINE
+
+                elif item["name"] == "Neon Cube":
+                    preview_color = NEON_CUBE_MAIN
+                    preview_outline = NEON_CUBE_OUTLINE
+
+                else:
+                    preview_color = NEON_PURPLE
+                    preview_outline = NEON_CYAN
+
+                pygame.draw.rect(
+                    screen,
+                    preview_outline,
+                    (preview_x - 16, preview_y - 16, 32, 32),
+                    3,
+                    border_radius=5
+                )
+
+            elif shop_category == "TRAILS":
+
+                if item["name"] == "Pink Trail":
+                    preview_colors = [PINK] * 3
+
+                elif item["name"] == "Cyan Trail":
+                    preview_colors = [CYAN] * 3
+
+                elif item["name"] == "Rainbow Trail":
+                    preview_colors = RAINBOW_COLORS[:3]
+
+                for particle_index, color in enumerate(preview_colors):
+
+                    pygame.draw.circle(
+                        screen,
+                        color,
+                        (
+                            preview_x - 20 + particle_index * 20,
+                            preview_y
+                        ),
+                        7 - particle_index
+                    )
+            else:
+                if item["name"] == "Rose Burst":
+                    preview_colors = [PINK, ROSE_RED, PINK]
+
+                elif item["name"] == "Star Burst":
+                    preview_colors = [WHITE, GOLD, LIGHT_GOLD]
+
+                else:
+                    preview_colors = [CYAN, NEON_PURPLE, NEON_CYAN]
+
+                for particle_index, color in enumerate(preview_colors):
+
+                    particle_x = preview_x - 25 + particle_index * 25
+
+                    if item["name"] == "Star Burst":
+                        draw_star(
+                            screen,
+                            color,
+                            (particle_x, preview_y),
+                            11
+                        )
+
+                    else:
+                        pygame.draw.circle(
+                            screen,
+                            color,
+                            (particle_x, preview_y),
+                            8
+                        )
+
+            if shop_category == "CUBES":
+                equipped_item = equipped_cube
+
+            elif shop_category == "TRAILS":
+                equipped_item = equipped_trail
+
+            else:
+                equipped_item = equipped_death_effect
+
+            if item["name"] == equipped_item:
+                pygame.draw.rect(
+                    screen,
+                    CYAN,
+                    item_card,
+                    3,
+                    border_radius=12
+                )
+
+            if item["name"] == equipped_item:
+                button_label = "EQUIPPED"
+
+            elif item["name"] in owned_items:
+                button_label = "EQUIP"
+
+            else:
+                button_label = f"BUY - {item['price']}"
+
+            draw_button(
+                shop_item_buttons[index],
+                button_label,
+                pygame.mouse.get_pos()
+            )
+
+        if shop_notice:
+            elapsed = pygame.time.get_ticks() - shop_notice_time
+
+            if elapsed < 2500:
+                notice_alpha = 255
+
+                if elapsed > 1800:
+                    notice_alpha = int(
+                        255 * (2500 - elapsed) / 700
+                    )
+
+                notice_text = small_font.render(
+                    shop_notice,
+                    True,
+                    GREEN if "Purchased" in shop_notice else CYAN
+                )
+
+                notice_text.set_alpha(notice_alpha)
+
+                screen.blit(
+                    notice_text,
+                    notice_text.get_rect(
+                        center=(WIDTH // 2, 374)
+                    )
+                )
+            else:
+                shop_notice = ""
+
+        draw_button(back_button, "BACK", pygame.mouse.get_pos())
+
 
         #wc screen
     elif game_state == WELCOME:
