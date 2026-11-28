@@ -1,28 +1,28 @@
 {
     "player_name": "MJ",
-    "high_score": 2052,
-    "total_gems": 23,
-    "total_roses": 46,
-    "total_orb_activations": 10,
-    "runs_completed": 41,
-    "best_combo": 3,
-    "best_survival_time": 30,
+    "high_score": 1800,
+    "total_gems": 15,
+    "total_roses": 40,
+    "total_orb_activations": 15,
+    "runs_completed": 14,
+    "best_combo": 2,
+    "best_survival_time": 23,
     "tutorial_completed": true,
     "game_tutorial_completed": true,
-    "coin_balance": 21,
+    "coin_balance": 29,
     "owned_items": [
-        "Classic Cube",
-        "Rose Cube",
-        "Pink Trail",
-        "Rainbow Trail",
-        "Cyan Trail",
-        "Rose Burst",
-        "Star Burst",
-        "Neon Cube"
+        "Classic Cube"
     ],
     "equipped_cube": "Classic Cube",
-    "equipped_trail": "Cyan Trail",
-    "equipped_death_effect": "Star Burst",
+    "equipped_trail": null,
+    "equipped_death_effect": null,
+    "unlocked_levels": [
+        1,
+        2
+    ],
+    "completed_levels": [
+        1
+    ],
     "achievements": {
         "first_bloom": true,
         "gem_collector": true,
@@ -32,6 +32,6 @@
         "rose_keeper": true,
         "combo_master": false,
         "first_flight": true,
-        "dedicated_player": true
+        "dedicated_player": false
     }
 }
